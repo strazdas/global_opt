@@ -72,10 +72,10 @@ def easom(X):
     x1, x2 = X
     return -np.cos(x1) * np.cos(x2) * np.e**(-((x1-np.pi)**2 + (x2 -np.pi)**2))
 
-def rastrigin(X):
+def rastrigin(X, A=10):
     '''http://link.springer.com/article/10.1007%2Fs10898-012-0020-3'''
     x1, x2 = X
-    return 20 + x1**2 + x2**2 - 10*(np.cos(2*np.pi*x1) + np.cos(2*np.pi *x2))
+    return 2*A + x1**2 + x2**2 - A*(np.cos(2*np.pi*x1) + np.cos(2*np.pi *x2))
 
 def hartman3(X):
     '''http://www.sfu.ca/~ssurjano/hart3.html'''
@@ -187,7 +187,7 @@ def get_grad(f_name):
     }
     return grads[f_name]
 
-def rastrigin_grad(X, A=1):
+def rastrigin_grad(X, A=10):
     x1, x2 = X
     g1 = 2*pi*A * sin(2*pi*x1) + 2*x1
     g2 = 2*pi*A * sin(2*pi*x2) + 2*x2
@@ -205,6 +205,7 @@ def find_L(f_name):
                 return float('inf')
         return -enorm(grad(X))
     Ls = []
+    # Naudoti globalaus, o ne lokalaus optimizavimo algoritma
     Ls.append(minimize(negative_grad_norm, lb, options={'disp': False},
                        args=(grad, lb, ub)).fun)
     Ls.append(minimize(negative_grad_norm, (a(lb)+a(ub))/2., options={'disp': False},
@@ -357,7 +358,7 @@ def get_L(f_name, C=1):
 
 
 if __name__ == '__main__':
-    print enorm(rastrigin_grad([-5,-5]))
+    print enorm(rastrigin_grad([4.25, 4.25]))
     print find_L('rastrigin')
     exit()
 
