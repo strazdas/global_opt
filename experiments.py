@@ -1,9 +1,9 @@
 from numpy import array as a
 import numpy as np
 
-from nu_angled import nu_angled_algorithm
-from nu_angled_adaptiveL import nu_angled_adaptiveL_algorithm
-from utils import draw_3d_objective_function, show_partitioning
+# from nu_angled import nu_angled_algorithm
+from disimpl_2v import disimpl_2v
+# from utils import draw_3d_objective_function, show_partitioning
 from datetime import datetime
 
 
@@ -352,7 +352,7 @@ if __name__ == '__main__':
         # print f_name, lb, ub, L, error, fmin
         # draw_3d_objective_function(f, lb, ub, title=f_name)
         start = datetime.now()
-        pareto_front, simplexes, f_calls = nu_angled_adaptiveL_algorithm(f, lb, ub, error, max_f_calls, f_min)
+        pareto_front, simplexes, f_calls = disimpl_2v(f, lb, ub, error, max_f_calls, f_min)
         end = datetime.now()
         # show_partitioning(simplexes)
         stats.append((f_name, f_calls))

@@ -10,7 +10,7 @@ from utils import enorm, l2norm, city_block_norm, show_pareto_front, show_partit
                   draw_simplex_3d_euclidean_bounds, draw_two_objectives_for_2d_simplex,\
                   nm, draw_3d_objective_function
 import numpy as np
-from scipy.optimize import minimize
+# from scipy.optimize import minimize
 from numpy.linalg import det, inv
 
 
@@ -494,7 +494,7 @@ def should_stop(actual_f_min, found_min, error):
         return (found_min*100 < error)
     return (found_min - actual_f_min)/abs(actual_f_min)*100 < error
 
-def nu_angled_adaptiveL_algorithm(f, lb, ub, error, max_f_calls, f_min):
+def disimpl_2v(f, lb, ub, error, max_f_calls, f_min):
     f = count_calls(f)
     simplexes = triangulate(lb, ub)
     points = find_objective_values_for_vertexes(simplexes, f)
@@ -581,7 +581,7 @@ if __name__ == '__main__':
     # print f([-2, -2]); exit()
     # draw_3d_objective_function(f, lb, ub); exit()
 
-    pareto_front, simplexes, f_calls = nu_angled_adaptiveL_algorithm(f, lb, ub, error, max_f_calls, f_min)
+    pareto_front, simplexes, f_calls = disimpl_2v(f, lb, ub, error, max_f_calls, f_min)
     print "Function calls:", f_calls
     found_min = min([min([v[-1]['obj'][0] for v in s[:-1]]) for s in simplexes])
     print "Minimum point", found_min, actual_minimum
