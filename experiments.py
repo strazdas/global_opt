@@ -1,18 +1,15 @@
 from numpy import array as a
 import numpy as np
+from numpy import sin, cos, e, pi
 
 # from nu_angled import nu_angled_algorithm
 from disimpl_2v import disimpl_2v
 # from utils import draw_3d_objective_function, show_partitioning
 from datetime import datetime
+from scipy.optimize import minimize
 
 
 ############   Objective functions   ############
-# def rastrigin(X, A=5):
-#     '''https://en.wikipedia.org/wiki/Rastrigin_function'''
-#     n = len(X)
-#     return A*n + sum([x**2 - A * np.cos(2*np.pi*x) for x in X])
-
 def hyperparabola(X):  # n->1
     '''Hyper-parabola with minimum at [1.]*n.'''
     return (a(X)).dot(a(X))
@@ -37,6 +34,7 @@ def branin(X):
     s = 10
     t = 1 / (8*np.pi)
     return (x2 - b*x1**2 + c*x1 - r)**2 + s*(1 - t) * np.cos(x1) + s
+    # return (y - (5.1/(4*pi^2))*x^2 + (5/pi)*x - 6)^2 + 10*(1 - 1/(8*pi)) * cos(x) + 10
 
 def goldstein_price(X):
     '''http://www.sfu.ca/~ssurjano/goldpr.html'''
@@ -182,7 +180,41 @@ def centered_jennrich_sampson(X):
         sum1 += (2 + 2*i - (np.e**(i*x1) + np.e**(i*x2)))**2
     return sum1
 
+##########  Gradients  ##########
+def get_grad(f_name):
+    grads = {
+        'rastrigin': rastrigin_grad,
+    }
+    return grads[f_name]
 
+def rastrigin_grad(X, A=1):
+    x1, x2 = X
+    g1 = 2*pi*A * sin(2*pi*x1) + 2*x1
+    g2 = 2*pi*A * sin(2*pi*x2) + 2*x2
+    return g1, g2
+
+def find_L(f_name):
+    D = get_D(f_name)
+    grad = get_grad(f_name)
+    lb = get_lb(f_name)
+    ub = get_ub(f_name)
+
+    def negative_grad_norm(X, grad, lb, ub):
+        for i in range(len(lb)):
+            if lb[i] > X[i] or ub[i] < X[i]:
+                return float('inf')
+        return -enorm(grad(X))
+    Ls = []
+    Ls.append(minimize(negative_grad_norm, lb, options={'disp': False},
+                       args=(grad, lb, ub)).fun)
+    Ls.append(minimize(negative_grad_norm, (a(lb)+a(ub))/2., options={'disp': False},
+                       args=(grad, lb, ub)).fun)
+    Ls.append(minimize(negative_grad_norm, ub, options={'disp': False},
+                       args=(grad, lb, ub)).fun)
+    return -min(Ls)
+
+
+########  Function parameters  ##########
 functions = [
     # 'rastrigin': rastrigin,
     # 'hyperparabola': hyperparabola,
@@ -298,19 +330,20 @@ def get_min(f_name):
     }
     return minimums[f_name]
 
-# def get_L(f_name, C=1):
-#     Ls = {
-#         'rastrigin': [37.68]*C,  # L = 2*ub[0] + 2*pi*A
+def get_L(f_name, C=1):
+    '''Lipschitz constant:   L = max_{x in D} ||grad(f)(x)||'''
+    Ls = {
+        14.1421356237
 #         'hyperparabola': [4]*C,  # L = 2*ub[0]
 #         'rosenbrock': [500]*C,     # L = 100*x2 - 600*x1^2*x2 + 500*x1^4 + 2*x1 + 2
 #         'styblinski': [1]*C,     # L = 3*x - 32*x + 5
 #         'shubert': [1]*C,     # L = ??
-#     }
+    }
 #     if not Ls.has_key(f_name):
 #         return None
 #     if C == 1:
 #         return Ls[f_name][0]
-#     return Ls[f_name][:C]
+    return Ls[f_name][:C]
 
 # def get_error(f_name):
 #     errors = {
@@ -324,6 +357,10 @@ def get_min(f_name):
 
 
 if __name__ == '__main__':
+    print enorm(rastrigin_grad([-5,-5]))
+    print find_L('rastrigin')
+    exit()
+
     C = 1
     max_f_calls = 1000
     stats = []
