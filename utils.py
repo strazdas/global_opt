@@ -10,6 +10,7 @@ from numpy.linalg import det
 
 import matplotlib.ticker as plticker
 from matplotlib import cm
+from itertools import permutations
 
 
 def enorm(X):
@@ -62,6 +63,54 @@ def city_block_norm(X):
 
 
 #########  Algorithm result visualization utilities  #########
+def show_potential(simplexes, selected=[], show=True):
+    # Draw two plots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,6))
+
+    for simplex in simplexes:
+        ax2.plot([simplex[-1]['size']], [simplex[-1]['value']], 'bo')
+    for simplex in selected:
+        ax2.plot([simplex[-1]['size']], [simplex[-1]['value']], 'ro')
+    for i in range(len(selected[:-1])):
+        ax2.plot([selected[i][-1]['size'], selected[i+1][-1]['size']],
+                 [selected[i][-1]['value'], selected[i+1][-1]['value']], 'r-')
+    ax2.set_ylabel('Function values on simplices vertices')
+    ax2.set_xlabel('Simplices diameter')
+
+    for simplex in simplexes:
+        s = simplex[:-1]
+        for j in range(3):
+            ax1.plot([s[j-1][0], s[j][0]], [s[j-1][1], s[j][1]], 'b-')
+
+    for simplex in selected:
+        s = simplex[:-1]
+        for j in range(3):
+            ax1.plot([s[j-1][0], s[j][0]], [s[j-1][1], s[j][1]], 'r-', linewidth=2)
+
+        edge_lengths = []   # [(vertex_index, vertex_index, edge_length),]
+        for i, j in permutations(range(len(s)), 2):
+            if j > i:
+                edge_lengths.append((i, j, l2norm(s[i][:-1], s[j][:-1])))
+        le_i, le_j, le_length = max(edge_lengths, key=lambda x: x[-1])
+
+        division_point = [(s[le_i][0]+s[le_j][0])/2., (s[le_i][1]+s[le_j][1])/2.]
+        # ax1.plot([division_point[0], simplex[2][0]], [division_point[1], simplex[2][0]], 'r-')
+        ax1.plot([division_point[0]], [division_point[1]], 'ro')
+        ax1.plot([division_point[0], s[2][0]], [division_point[1], s[2][1]], 'r-')
+        # Get longest edge, divide it
+        # division line needed
+
+    for simplex in simplexes:
+        for j in range(3):
+            ax1.plot([simplex[j][0]], [simplex[j][1]], 'bo')
+
+    # ax2.axis([min([simplexes]) -0.05, 1.05, -0.05, 1.05])
+    ax1.axis([-0.05, 1.05, -0.05, 1.05])
+    if show:
+        plt.show()
+    return ax1, ax2
+
+
 def show_pareto_front(pareto_front):
     '''Draws 2D pareto set and 2D pareto front.'''
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,6))
@@ -73,14 +122,14 @@ def show_pareto_front(pareto_front):
 
 
 def show_partitioning(simplexes, simplex_to_divide=None, division_point=None):
-    nr_of_colors = plt.cm.jet.N / len(simplexes)
-    clrs = plt.cm.jet([e*nr_of_colors for e in range(len(simplexes))])
+    # nr_of_colors = plt.cm.jet.N / len(simplexes)
+    # clrs = plt.cm.jet([e*nr_of_colors for e in range(len(simplexes))])
     for i, simplex in enumerate(simplexes):
         s = simplex[:-1]
         # simplex_center = [mean([v[0] for v in simplex[:-1]]), mean([v[1] for v in simplex[:-1]])]
         # plt.text(simplex_center[0], simplex_center[1], '%.4f' % simplex[-1]['tolerance'])
         for j in range(3):
-            plt.plot([s[j-1][0], s[j][0]], [s[j-1][1], s[j][1]], '-', color=clrs[i])
+            plt.plot([s[j-1][0], s[j][0]], [s[j-1][1], s[j][1]], 'b-') # , color=clrs[i]
 
     # Color in other color newly added edge color
     if simplex_to_divide:

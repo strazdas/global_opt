@@ -225,6 +225,7 @@ functions = [
     ('branin', branin),
     ('goldstein_price', goldstein_price),
     ('six_hump_camel_back', six_hump_camel_back),
+    ('shubert', shubert),
     ('alolyan', alolyan),
     ('easom', easom),
     ('rastrigin', rastrigin),
@@ -238,7 +239,6 @@ functions = [
     ('reduced_shekel10', shekel10),
     ('jennrich_sampson', jennrich_sampson),
     ('centered_jennrich_sampson', centered_jennrich_sampson),
-    ('shubert', shubert),
 ]
 
 def get_D(f_name):
@@ -261,7 +261,7 @@ def get_lb(f_name, D=2):
         'hyperparabola': [-2.]*D,
         'rosenbrock': [-1.]*D,
         'styblinski': [-5]*D,
-        'branin': [-5, 10],
+        'branin': [-5, 0],
         'goldstein_price': [-2., -2.],
         'six_hump_camel_back': [-3., -2.],
         'shubert': [-10.]*D,
@@ -286,7 +286,7 @@ def get_ub(f_name, D=2):
         'hyperparabola': [2.]*D,
         'rosenbrock': [1.]*D,
         'styblinski': [5]*D,
-        'branin': [0, 15],
+        'branin': [10, 15],
         'goldstein_price': [2., 2.],
         'six_hump_camel_back': [3., 2.],
         'shubert': [10]*D,
@@ -306,7 +306,7 @@ def get_ub(f_name, D=2):
     }
     return ups[f_name][:D]
 
-def get_min(f_name):
+def get_min(f_name, D=2):
     minimums = {
         'rastrigin': [[0]*(D+1)],
         'hyperparabola': [[1]*D + [0]],
