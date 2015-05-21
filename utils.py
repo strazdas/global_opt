@@ -105,6 +105,8 @@ def show_potential(simplexes, selected=[], show=True):
             ax1.plot([simplex[j][0]], [simplex[j][1]], 'bo')
 
     # ax2.axis([min([simplexes]) -0.05, 1.05, -0.05, 1.05])
+    max_size = max([s[-1]['size'] for s in simplexes])
+    ax2.set_xlim([-0.05, max_size + 0.05])
     ax1.axis([-0.05, 1.05, -0.05, 1.05])
     if show:
         plt.show()

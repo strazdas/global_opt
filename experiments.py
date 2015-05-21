@@ -26,13 +26,14 @@ def styblinski(X):
 
 def branin(X):
     '''2D http://www.sfu.ca/~ssurjano/branin.html'''
+    pi_ = np.pi
     x1 = X[0]
     x2 = X[1]
-    b = 5.1/(4 * np.pi**2)
-    c = 5 / np.pi
-    r = 6
-    s = 10
-    t = 1 / (8*np.pi)
+    b = 5.1 / (4. * pi_**2)
+    c = 5. / pi_
+    r = 6.
+    s = 10.
+    t = 1. / (8. * pi_)
     return (x2 - b*x1**2 + c*x1 - r)**2 + s*(1 - t) * np.cos(x1) + s
     # return (y - (5.1/(4*pi^2))*x^2 + (5/pi)*x - 6)^2 + 10*(1 - 1/(8*pi)) * cos(x) + 10
 
@@ -292,7 +293,7 @@ def get_ub(f_name, D=2):
         'shubert': [10]*D,
         'alolyan': [1.]*D,
         'easom': [30.]*D,
-        'rastrigin': [5.]*D,
+        'rastrigin': [6.]*D,
         'hartman3': [1.]*D,
         'shekel5': [10.]*D,
         'shekel7': [10.]*D,
