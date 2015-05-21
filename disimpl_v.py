@@ -14,24 +14,26 @@ import numpy as np
 from numpy.linalg import det, inv
 from matplotlib import pyplot as plt
 from datetime import datetime
+import warnings
+warnings.filterwarnings("error")
 
 
-def branin(X):
-    '''2D http://www.sfu.ca/~ssurjano/branin.html'''
-    x1 = X[0]
-    x2 = X[1]
-
-    pi_ = np.pi # 3.15 # 41592653589793
-
-    a_ = 1.
-    b = 5.1/(4. * pi_**2)
-    c = 5. / pi_
-    r = 6.
-    s = 10.
-    t = 1. / (8. * pi_)
-    value = a_*(x2 - b*x1**2 + c*x1 - r)**2 + s*(1 - t) * np.cos(x1) + s
-    # print 'At point', X, 'value', value
-    return value
+# def branin(X):
+#     '''2D http://www.sfu.ca/~ssurjano/branin.html'''
+#     x1 = X[0]
+#     x2 = X[1]
+# 
+#     pi_ = np.pi # 3.15 # 41592653589793
+# 
+#     a_ = 1.
+#     b = 5.1/(4. * pi_**2)
+#     c = 5. / pi_
+#     r = 6.
+#     s = 10.
+#     t = 1. / (8. * pi_)
+#     value = a_*(x2 - b*x1**2 + c*x1 - r)**2 + s*(1 - t) * np.cos(x1) + s
+#     # print 'At point', X, 'value', value
+#     return value
 
 def rastrigin(X, A=1):
     '''https://en.wikipedia.org/wiki/Rastrigin_function'''
@@ -435,8 +437,6 @@ def convex_hull(x, y, it=0):
         if v == 0:
             return m
         return v - 1
-    # if it == 6:
-    #     import ipdb; ipdb.set_trace()
     x = x[:]
     y = y[:]
     m = len(x) - 1
@@ -446,6 +446,8 @@ def convex_hull(x, y, it=0):
         return [0, 1]
     if m == 0:
         return [0]
+    # if len(x) == 0:
+    #     return []
     START = 0
     v = START
     w = len(x) - 1
@@ -503,18 +505,15 @@ def select_simplexes_to_divide(simplexes, it=0):
             ud_i_min_id = len(ud_min_ids)
         ud_min_ids.append(j)
 
-    # if it == 6:
-        # show_potential(simplexes, selected)
-        # import ipdb; ipdb.set_trace()
-
-    # if len(ud_min_ids) - ud_i_min_id > 1:
-    if len(ud_min_ids) > 2:
+    if len(ud_min_ids) - ud_i_min_id > 1:
+        # This comparison solves problem when the largest simplex has lowest value i_min == ud_min_ids[-1]
         # Find points below given line.
         S = []
         a1 = d[i_min]
         b1 = f[i_min]
         a2 = d[ud_min_ids[-1]]
         b2 = f[ud_min_ids[-1]]
+
         slope = (b2 - float(b1))/(a2 - a1)
         # if it == 4:
         #     import ipdb; ipdb.set_trace()
@@ -585,7 +584,6 @@ def select_simplexes_to_divide(simplexes, it=0):
     # print 'Simplex best value', f
     # print 'Simplex diameter', d
     # show_potential(simplexes, selected)
-    # import ipdb; ipdb.set_trace()
     return selected
     # Find all simplexes with higher then minimum size:
     # with D(i) >= D(i_min) and F(i) is the minimum function value for the current distance
@@ -642,21 +640,18 @@ def remove_dominated_simplexes(simplexes):
 def wrap(f, lb, ub):
     '''Function decorator which adds call count attribute to the function.'''
     def wrapper(*args, **kwargs):
-        point = args[0]
+        point = args[0]   # Point in [0, 1]*n
         if not point in wrapper.points:
-            wrapper.calls += 1
-            wrapper.points.append(point)
-        new_point = []
+            wrapper.calls += 1   # Count unique function calls
+            wrapper.points.append(point[:])   # Save the point
+        new_point = []  # Transform point from [0, 1]*n to [l, u]
         for i in range(len(wrapper.lb)):
             v = wrapper.ub[i] - wrapper.lb[i]
             new_point.append(point[i]*v + wrapper.lb[i])
-        # x1 = x1 * 15. -5. # [0, 1] -> [-5, 10]
-        # x2 = x2 * 15.     # [0, 1] -> [0, 15]
-
         value = f(*[new_point] + list(args[1:]), **kwargs)
-        if value < wrapper.min_f:
+        if value < wrapper.min_f:   # Save best found value
             wrapper.min_f = value
-            wrapper.min_x = point
+            wrapper.min_x = point[:]
         return value
     wrapper.calls = 0
     wrapper.min_f = float('inf')
@@ -724,7 +719,7 @@ def disimpl_v(f, lb, ub, error, max_f_calls, f_min):
             simplexes_to_divide = copy(simplexes)
         else:
             simplexes_to_divide = select_simplexes_to_divide(simplexes, i)
-        # simplexes_to_divide = select_simplexes_to_divide(simplexes, i)
+        # show_potential(simplexes, simplexes_to_divide)
 
         # simplex_to_divide[-1]['hash'] = hash(str(simplex_to_divide[:-1]))
 
@@ -770,6 +765,10 @@ def disimpl_v(f, lb, ub, error, max_f_calls, f_min):
             simplexes.insert(index, new_simplex2)
 
             found_min = min([min([v[-1]['obj'][0] for v in s[:-1]]) for s in simplexes])
+            # if should_stop(f_min, found_min, error):
+            #     done = True
+            #     break
+
         if should_stop(f_min, found_min, error):
             done = True
             break
@@ -780,11 +779,9 @@ def disimpl_v(f, lb, ub, error, max_f_calls, f_min):
 
             # remove_dominated_simplexes(simplexes)
         i += 1
-        print f.calls
-        ## if i == 7:
-        ##     break
-        ## if done:
-        ##     break
+        # print f.calls
+        if done:
+            break
         # print 'Number of simplexes', len(simplexes), 'Function calls:', f.calls
         # print i, tolerance
         # print '%d.  simplex approx.l.b.min.: %.14f' % (i, simplex_to_divide[-1]['approx_min_ABC'])
@@ -795,39 +792,43 @@ def disimpl_v(f, lb, ub, error, max_f_calls, f_min):
 if __name__ == '__main__':
     # D = 2
     from experiments import functions, get_D, get_lb, get_ub, get_min
-    # for i, (f_name, f) in enumerate(functions[7:]):
-
-    f_name = 'branin'
-    f = dict(functions)[f_name]
-    D = get_D(f_name)
-    lb = get_lb(f_name, D)
-    ub = get_ub(f_name, D)
-    min_x = get_min(f_name, D)[:-1]
-    min_f = get_min(f_name, D)[-1]
 
     max_f_calls = 10000
     error = 1.0
-    # min_f = 0.397887
-    # min_x = [(-np.pi + 5)/ 15.,  12.275/15.]
+    # error = 0.01
+    print 'Pe', error
+    for f_name, f in functions[0:]:
+    # for f_name in ['shubert']:
+        print f_name + ':'
+        f = dict(functions)[f_name]
+        D = get_D(f_name)
+        lb = get_lb(f_name, D)
+        ub = get_ub(f_name, D)
+        min_x = get_min(f_name, D)[:-1]
+        min_f = get_min(f_name, D)[-1]
 
-    # f = branin
-    # lb = [-5., 0.]
-    # ub = [10., 15.]
+        # min_f = 0.397887
+        # min_x = [(-np.pi + 5)/ 15.,  12.275/15.]
 
-    # draw_3d_objective_function(branin, lb, ub)
-    # exit()
+        # f = branin
+        # lb = [-5., 0.]
+        # ub = [10., 15.]
 
-    start = datetime.now()
-    pareto_front, simplexes, f = disimpl_v(f, lb, ub, error, max_f_calls, min_f)
-    end = datetime.now()
-    print f_name
-    print "f*:", min_f, "x*:", min_x
-    print "Calls:", f.calls, 'Found f*:', f.min_f, 'x*:', f.min_x[:-1]
-    print "Duration", end-start
-    raw_input('Press enter')
-    # ??? Found best point
+        # draw_3d_objective_function(branin, lb, ub)
+        # exit()
 
-    # show_lower_pareto_bound(simplexes)
-    # show_partitioning(simplexes)
-    # show_potential(simplexes)
-    # show_pareto_front(pareto_front)
+        start = datetime.now()
+        pareto_front, simplexes, f = disimpl_v(f, lb, ub, error, max_f_calls, min_f)
+        end = datetime.now()
+        print '   ', f_name, f.calls, f.min_f, f.min_x
+        del f
+        del simplexes
+        # print "f*:", min_f, "x*:", min_x
+        # print "Calls:", f.calls, 'Found f*:', f.min_f, 'x*:', f.min_x[:-1]
+        # print "Duration", end-start
+        # raw_input('Press enter')
+
+        # show_lower_pareto_bound(simplexes)
+        # show_partitioning(simplexes)
+        # show_potential(simplexes)
+        # show_pareto_front(pareto_front)
