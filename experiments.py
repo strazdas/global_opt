@@ -6,7 +6,7 @@ from numpy import sin, cos, e, pi
 from disimpl_2v import disimpl_2v
 from utils import draw_3d_objective_function, show_partitioning
 from datetime import datetime
-from scipy.optimize import minimize
+# from scipy.optimize import minimize
 from sys import argv
 
 
@@ -242,7 +242,7 @@ functions = [
     ('reduced_shekel7', shekel7),
     ('reduced_shekel10', shekel10),
     ('jennrich_sampson', jennrich_sampson),
-    ('centered_jennrich_sampson', centered_jennrich_sampson),
+    # ('centered_jennrich_sampson', centered_jennrich_sampson),
 ]
 
 def get_D(f_name):
@@ -304,9 +304,9 @@ def get_ub(f_name, D=2):
         'hartman6': [1.]*D,
         'jennrich_sampson': [1.]*D,
         'centered_jennrich_sampson': [0.5]*D,
-        'reduced_shekel5': [4.]*D,
-        'reduced_shekel7': [4.]*D,
-        'reduced_shekel10': [4.]*D,
+        'reduced_shekel5': [6.]*D,
+        'reduced_shekel7': [6.]*D,
+        'reduced_shekel10': [6.]*D,
     }
     return ups[f_name][:D]
 
