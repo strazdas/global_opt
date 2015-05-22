@@ -7,6 +7,7 @@ from disimpl_2v import disimpl_2v
 from utils import draw_3d_objective_function, show_partitioning
 from datetime import datetime
 from scipy.optimize import minimize
+from sys import argv
 
 
 ############   Objective functions   ############
@@ -365,18 +366,32 @@ if __name__ == '__main__':
     max_f_calls = 10000
     stats = []
 
-    for f_name, f in functions.items():
+    error = 1.0
+    mirror_division = False
+    if len(argv) == 2:
+        error = argv[1]
+    elif len(argv) == 3:
+        error = float(argv[1])
+        mirror_division = bool(argv[2])
+
+
+    for f_name, f in functions:
+        f = dict(functions)[f_name]
+        D = get_D(f_name)
+        lb = get_lb(f_name, D)
+        ub = get_ub(f_name, D)
+        min_x = get_min(f_name, D)[:-1]
+        min_f = get_min(f_name, D)[-1]
         lb = get_lb(f_name, D)
         ub = get_ub(f_name, D)
         # L = get_L(f_name, C)
-        # error = get_error(f_name)
         f_min = get_min(f_name)[-1]
-        error = 1.0
-        # print f_name, lb, ub, L, error, fmin
         # draw_3d_objective_function(f, lb, ub, title=f_name)
         start = datetime.now()
-        pareto_front, simplexes, f_calls = disimpl_2v(f, lb, ub, error, max_f_calls, f_min)
+        pareto_front, simplexes, f = disimpl_2v(f, lb, ub, error, max_f_calls, min_f, mirror_division)
         end = datetime.now()
-        # show_partitioning(simplexes)
-        stats.append((f_name, f_calls))
-        print '%s: f_calls: %s, duration: %s' % (f_name, f_calls, end-start)
+        print f_name, f.calls, f.min_f, f.min_x
+        stats.append((f_name, f.calls))
+        print '%s: f_calls: %s, duration: %s' % (f_name, f.calls, end-start)
+        print 'Actual minimum', min_f, min_x
+        print D, lb, ub

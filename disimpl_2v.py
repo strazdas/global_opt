@@ -478,7 +478,7 @@ def convex_hull(x, y, it=0):
     return h
 
 
-def select_simplexes_to_divide(simplexes, it=0):
+def select_simplexes_to_divide(simplexes, it=0, mirror_division=False):
     sorted_simplexes = sorted(simplexes, key=lambda x: (x[-1]['value'], x[-1]['size']))
     d = [s[-1]['size'] for s in sorted_simplexes]
     f = [s[-1]['value'] for s in sorted_simplexes]
@@ -565,11 +565,12 @@ def select_simplexes_to_divide(simplexes, it=0):
                 selected.append(s)
 
     ## ??? Divide the mirror simplex ???.
-    # for s in selected:
-    #     simplexes_with_same_longest_edge = get_simplexes_with_given_longest_edge(simplexes, s[0], s[1])
-    #     for s in simplexes_with_same_longest_edge:
-    #         if s not in selected:
-    #             selected.append(s)
+    if mirror_division:
+        for s in selected:
+            simplexes_with_same_longest_edge = get_simplexes_with_given_longest_edge(simplexes, s[0], s[1])
+            for s in simplexes_with_same_longest_edge:
+                if s not in selected:
+                    selected.append(s)
 
     # from pprint  import pprint
     # print 'Simplexes'
@@ -675,7 +676,7 @@ def should_stop(actual_f_min, found_min, error):
         return (found_min*100 < error)
     return (found_min - actual_f_min)/abs(actual_f_min)*100 < error
 
-def disimpl_2v(f, lb, ub, error, max_f_calls, f_min):
+def disimpl_2v(f, lb, ub, error, max_f_calls, f_min, mirror_division=False):
     f = wrap(f, lb, ub)
     simplexes = triangulate([0.]*len(lb), [1.]*len(ub))
     # simplexes = [ # Disimpl_v Branin example
@@ -718,7 +719,7 @@ def disimpl_2v(f, lb, ub, error, max_f_calls, f_min):
         if i == 0:
             simplexes_to_divide = copy(simplexes)
         else:
-            simplexes_to_divide = select_simplexes_to_divide(simplexes, i)
+            simplexes_to_divide = select_simplexes_to_divide(simplexes, i, mirror_division)
         # show_potential(simplexes, simplexes_to_divide)
 
         # simplex_to_divide[-1]['hash'] = hash(str(simplex_to_divide[:-1]))
