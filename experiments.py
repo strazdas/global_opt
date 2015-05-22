@@ -4,7 +4,7 @@ from numpy import sin, cos, e, pi
 
 # from nu_angled import nu_angled_algorithm
 from disimpl_2v import disimpl_2v
-# from utils import draw_3d_objective_function, show_partitioning
+from utils import draw_3d_objective_function, show_partitioning
 from datetime import datetime
 from scipy.optimize import minimize
 
@@ -36,6 +36,8 @@ def branin(X):
     t = 1. / (8. * pi_)
     return (x2 - b*x1**2 + c*x1 - r)**2 + s*(1 - t) * np.cos(x1) + s
     # return (y - (5.1/(4*pi^2))*x^2 + (5/pi)*x - 6)^2 + 10*(1 - 1/(8*pi)) * cos(x) + 10
+
+
 
 def goldstein_price(X):
     '''http://www.sfu.ca/~ssurjano/goldpr.html'''
@@ -359,27 +361,9 @@ def get_L(f_name, C=1):
 
 
 if __name__ == '__main__':
-    print enorm(rastrigin_grad([4.25, 4.25]))
-    print find_L('rastrigin')
-    exit()
-
     C = 1
-    max_f_calls = 1000
+    max_f_calls = 10000
     stats = []
-
-    f_name = 'reduced_shekel10'
-    f = dict(functions)[f_name]
-    D = get_D(f_name)
-    lb = get_lb(f_name, D)
-    ub = get_ub(f_name, D)
-    f_min = get_min(f_name)
-    print f_min, f(f_min[:-1])
-    print 'Minimum OK:', round(f(f_min[:-1]), 4) == round(f_min[-1], 4)
-    # draw_3d_objective_function(f, lb, ub)
-    exit()
-
-    # Paleisti eksperimentus su sukalibruotomis funkcijomis.
-    # Todo: sukalibruoti 'rosenbrock' ir 'styblinski' funkcijas.
 
     for f_name, f in functions.items():
         lb = get_lb(f_name, D)
