@@ -505,7 +505,8 @@ def select_simplexes_to_divide(simplexes, it=0):
             ud_i_min_id = len(ud_min_ids)
         ud_min_ids.append(j)
 
-    if len(ud_min_ids) - ud_i_min_id > 1:
+    if len(ud_min_ids) > 2 and i_min != ud_min_ids[-1]:
+    # if len(ud_min_ids) - ud_i_min_id > 1:
         # This comparison solves problem when the largest simplex has lowest value i_min == ud_min_ids[-1]
         # Find points below given line.
         S = []
@@ -529,7 +530,6 @@ def select_simplexes_to_divide(simplexes, it=0):
         h = convex_hull(dd, ff, it)
         ids = [S[i] for i in h]
     else:
-        ## ??? Is this part working correctly ???
         ids = ud_min_ids
 
     # Atmesk visus elementus, kurie neatitinka sąlygos:
@@ -795,10 +795,9 @@ if __name__ == '__main__':
 
     max_f_calls = 10000
     error = 1.0
-    # error = 0.01
     print 'Pe', error
     for f_name, f in functions[0:]:
-    # for f_name in ['shubert']:
+    # for f_name in ['easom']:
         print f_name + ':'
         f = dict(functions)[f_name]
         D = get_D(f_name)

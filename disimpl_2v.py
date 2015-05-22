@@ -8,11 +8,32 @@ from numpy import array as a, sqrt, hstack, vstack
 from utils import enorm, l2norm, city_block_norm, show_pareto_front, show_partitioning,\
                   draw_bounds, remove_dominated_subinterval, show_lower_pareto_bound,\
                   draw_simplex_3d_euclidean_bounds, draw_two_objectives_for_2d_simplex,\
-                  nm, draw_3d_objective_function
+                  nm, draw_3d_objective_function, show_potential
 import numpy as np
 # from scipy.optimize import minimize
 from numpy.linalg import det, inv
+from matplotlib import pyplot as plt
+from datetime import datetime
+import warnings
+warnings.filterwarnings("error")
 
+
+# def branin(X):
+#     '''2D http://www.sfu.ca/~ssurjano/branin.html'''
+#     x1 = X[0]
+#     x2 = X[1]
+# 
+#     pi_ = np.pi # 3.15 # 41592653589793
+# 
+#     a_ = 1.
+#     b = 5.1/(4. * pi_**2)
+#     c = 5. / pi_
+#     r = 6.
+#     s = 10.
+#     t = 1. / (8. * pi_)
+#     value = a_*(x2 - b*x1**2 + c*x1 - r)**2 + s*(1 - t) * np.cos(x1) + s
+#     # print 'At point', X, 'value', value
+#     return value
 
 def rastrigin(X, A=1):
     '''https://en.wikipedia.org/wiki/Rastrigin_function'''
@@ -80,15 +101,15 @@ def find_meta_for_simplexes(simplexes):
     for simplex in simplexes:
         sort_vertexes_longest_edge_first(simplex)
         if type(simplex[-1]) == dict:
-            simplex[-1]['avg_obj'] = find_avg_obj(simplex)
-            simplex[-1]['divisions'] = 1
+            simplex[-1]['value'] = find_simplex_value(simplex),
+            simplex[-1]['size'] = find_simplex_size(simplex),
             # simplex[-1]['mins_AB'] = find_mins_AB(simplex, L)
             # simplex[-1]['approx_min_ABC'] = get_approx_lb_min(simplex, L)
             # simplex[-1]['tolerance'] = get_tolerance(simplex, L)
         else:
             simplex.append({
-                'avg_obj':  find_avg_obj(simplex),
-                'divisions': 1,
+                'value':  find_simplex_value(simplex),
+                'size': find_simplex_size(simplex),
                 # 'mins_AB': find_mins_AB(simplex, L),
                 # 'approx_min_ABC': get_approx_lb_min(simplex, L),
                 # 'tolerance': get_tolerance(simplex, L),
@@ -116,9 +137,16 @@ def sort_vertexes_longest_edge_first(simplex):
     simplex.insert(0, vi)
     return simplex
 
-def find_avg_obj(simplex):
+def find_simplex_value(simplex):
+    ## Three:
+    # return np.mean([v[-1]['obj'] for v in simplex[:-1]])
+    ## Two:
     return np.mean([v[-1]['obj'] for v in simplex[:2]])
-    # return min([v[-1]['obj'] for v in simplex])
+    ## One vertex:
+    # return min([v[-1]['obj'][0] for v in simplex])
+
+def find_simplex_size(simplex):
+    return enorm(a(simplex[0][:-1]) - a(simplex[1][:-1]))
 
 
 # def find_mins_AB(simplex, L):
@@ -399,38 +427,167 @@ def get_tolerance(simplex, L):
     return min_dist
 
 
+def convex_hull(x, y, it=0):
+    '''2D convex hull algorithm.'''
+    def nextv(v, m):
+        if v == m:
+            return 0
+        return v + 1
+    def predv(v, m):
+        if v == 0:
+            return m
+        return v - 1
+    x = x[:]
+    y = y[:]
+    m = len(x) - 1
+    if len(x) != len(y):
+        raise ValueError('Convex hull input dimensions must match')
+    if m == 1:
+        return [0, 1]
+    if m == 0:
+        return [0]
+    # if len(x) == 0:
+    #     return []
+    START = 0
+    v = START
+    w = len(x) - 1
+    flag = 0
+    leftturn = None
+    h = range(len(x))
+    while (nextv(v, m) != START) or (flag == 0):
+        if nextv(v, m) == w:
+            flag = 1
+        a = v
+        b = nextv(v, m)
+        c = nextv(nextv(v, m), m)
+        det_val = det([[x[a], y[a], 1], [x[b], y[b], 1], [x[c], y[c], 1]])
+        if det_val >= 0:
+            leftturn = 1
+        else:
+            leftturn = 0
+        if leftturn:
+            v = nextv(v, m)
+        else:
+            j = nextv(v, m)
+            x.pop(j)
+            y.pop(j)
+            h.pop(j)
+            m -= 1
+            w -= 1
+            v = predv(v, m)
+    return h
 
-def select_simplexes_to_divide(simplexes):
-    pf = []
-    divisions_counts = sorted(list(set([s[-1]['divisions'] for s in simplexes])))
-    for divisions in divisions_counts:
-        simplexes_with_divisions = [s for s in simplexes if s[-1]['divisions'] == divisions]
-        pf.append(sorted(simplexes_with_divisions, key=lambda x: x[-1]['avg_obj'])[0])
 
-    def simplex_dominates(p, q):
-        '''Point p dominates q if all its objectives are better or equal'''
-        dominates = False
-        for key in ['divisions', 'avg_obj']:
-            if p[-1][key] > q[-1][key]:
-                return False
-            elif p[-1][key] < q[-1][key]:
-                dominates = True
-        return dominates
+def select_simplexes_to_divide(simplexes, it=0):
+    sorted_simplexes = sorted(simplexes, key=lambda x: (x[-1]['value'], x[-1]['size']))
+    d = [s[-1]['size'] for s in sorted_simplexes]
+    f = [s[-1]['value'] for s in sorted_simplexes]
+    f_min = min(f)
 
-    def get_simplex_pareto_front(X):
-        '''Returns non dominated simplexes.'''
-        P = []
-        for x in X:
-            dominated = False
-            for xd in X:
-                if x != xd:
-                    if simplex_dominates(xd, x):
-                        dominated = True
-            if not dominated and x not in P:
-                P.append(x)
-        return P
-    selected_simplexes = get_simplex_pareto_front(pf)
-    return selected_simplexes
+    # Find best simplex:  (F - f_min + E)./D   # E = max(epsilon*abs(f_min),1E-8))
+    # Kiekvienam simpleksui apskaičiuoti dydį: (F - f_min + E)./D
+    met = [(s[-1]['value'] - f_min + 10**-8) / s[-1]['size'] for s in sorted_simplexes]
+    min_met = min(met)
+    i_min = met.index(min_met)
+    # i_min = f.index(f_min)
+
+    # For each division find min function value.
+    ## globalūs indeksai reikalingi elementų su minimalia reikšme
+    unique_divisions = sorted(list(set([s[-1]['size'] for s in simplexes])))
+    ud_min_ids = []
+    ud_i_min_id = None
+    for division in unique_divisions:
+        simplexes_with_division = [s for s in simplexes if s[-1]['size'] == division]
+        min_obj = min(simplexes_with_division, key=lambda o: o[-1]['value'])
+        ud_i_min_id = len(ud_min_ids)
+        j = sorted_simplexes.index(min_obj)
+        if min_obj == j:
+            ud_i_min_id = len(ud_min_ids)
+        ud_min_ids.append(j)
+
+    if len(ud_min_ids) > 2 and i_min != ud_min_ids[-1]:
+    # if len(ud_min_ids) - ud_i_min_id > 1:
+        # This comparison solves problem when the largest simplex has lowest value i_min == ud_min_ids[-1]
+        # Find points below given line.
+        S = []
+        a1 = d[i_min]
+        b1 = f[i_min]
+        a2 = d[ud_min_ids[-1]]
+        b2 = f[ud_min_ids[-1]]
+
+        slope = (b2 - float(b1))/(a2 - a1)
+        # if it == 4:
+        #     import ipdb; ipdb.set_trace()
+        const = b1 - slope*a1
+        for i in range(len(ud_min_ids)):
+            j = ud_min_ids[i]
+            if f[j] <= slope*d[j] + const + 10**-12:
+                S.append(j)
+
+        dd = [d[i] for i in S]
+        ff = [f[i] for i in S]
+        # Find convex hull for them.
+        h = convex_hull(dd, ff, it)
+        ids = [S[i] for i in h]
+    else:
+        ids = ud_min_ids
+
+    # Atmesk visus elementus, kurie neatitinka sąlygos:
+    # f - slope*d > f_min - epsilon*abs(f_min)
+    remove = []
+    for i in range(len(ids)-1):
+        i_a = ids[len(ids) - i - 1]
+        i_b = ids[len(ids) - i - 2]
+        a1 = d[i_a]
+        b1 = f[i_a]
+        a2 = d[i_b]
+        b2 = f[i_b]
+        slope = (b2 - float(b1))/(a2 - a1)
+        const = b1 - slope*a1
+        if const > f_min - 0.0001*abs(f_min):
+            remove.append(i_b)
+        # if len(remove):
+        #     ax1, ax2 = show_potential(simplexes, show=False)
+        #     ax2.plot([0, a1], [const, slope*a1+const], 'g-')
+        #     ax2.plot([0], [f_min - 0.0001*abs(f_min)], 'ro')
+        #     ax2.plot([0], [const], 'go')
+        #     plt.show()
+    for i in remove:
+        ids.remove(i)
+
+
+    # Reikia išrinkti visus elementus turinčius nurodytą reikšmę
+    selected = []
+    for i in ids:
+        for s in sorted_simplexes:
+            if (s[-1]['value'] == f[i] and s[-1]['size'] == d[i]
+                                         and s not in selected):
+                selected.append(s)
+
+    ## ??? Divide the mirror simplex ???.
+    # for s in selected:
+    #     simplexes_with_same_longest_edge = get_simplexes_with_given_longest_edge(simplexes, s[0], s[1])
+    #     for s in simplexes_with_same_longest_edge:
+    #         if s not in selected:
+    #             selected.append(s)
+
+    # from pprint  import pprint
+    # print 'Simplexes'
+    # pprint(simplexes)
+    # print 'Worst simplex', max(simplexes, key=lambda x: x[-1]['value'])
+    # print 'Worst neibours'
+    # pprint([s for s in simplexes if [0.75, 0.75] in [v[:-1] for v in s[:-1]]])
+    # # print 'Best simplexes'
+    # # pprint([s for s in simplexes if [1., 0.25] in [v[:-1] for v in s[:-1]]])
+    # # print '-----'
+    # # pprint([s for s in simplexes if [1., 0.125] in [v[:-1] for v in s[:-1]]])
+    # print 'Simplex best value', f
+    # print 'Simplex diameter', d
+    # show_potential(simplexes, selected)
+    return selected
+    # Find all simplexes with higher then minimum size:
+    # with D(i) >= D(i_min) and F(i) is the minimum function value for the current distance
+
 
 
 def get_division_point(A, B, f):
@@ -480,14 +637,38 @@ def remove_dominated_simplexes(simplexes):
     # min_vertex_obj = min(simplexes, key=lambda x: x[-1]['approx_min_ABC'])
 
 
-def count_calls(f):
+def wrap(f, lb, ub):
     '''Function decorator which adds call count attribute to the function.'''
     def wrapper(*args, **kwargs):
-        wrapper.calls += 1
-        return f(*args, **kwargs)
+        point = args[0]   # Point in [0, 1]*n
+        if not point in wrapper.points:
+            wrapper.calls += 1   # Count unique function calls
+            wrapper.points.append(point[:])   # Save the point
+        new_point = []  # Transform point from [0, 1]*n to [l, u]
+        for i in range(len(wrapper.lb)):
+            v = wrapper.ub[i] - wrapper.lb[i]
+            new_point.append(point[i]*v + wrapper.lb[i])
+        value = f(*[new_point] + list(args[1:]), **kwargs)
+        if value < wrapper.min_f:   # Save best found value
+            wrapper.min_f = value
+            wrapper.min_x = point[:]
+        return value
     wrapper.calls = 0
+    wrapper.min_f = float('inf')
+    wrapper.min_x = None
+    wrapper.lb = lb
+    wrapper.ub = ub
+    wrapper.points = []
     wrapper.__name__= f.__name__
     return wrapper
+
+def get_simplexes_with_given_longest_edge(simplexes, A, B):
+    with_the_edge = []
+    for s in simplexes:
+        if A in s and B in s:
+            with_the_edge.append(s)
+    return with_the_edge
+
 
 def should_stop(actual_f_min, found_min, error):
     if actual_f_min == 0:
@@ -495,8 +676,37 @@ def should_stop(actual_f_min, found_min, error):
     return (found_min - actual_f_min)/abs(actual_f_min)*100 < error
 
 def disimpl_2v(f, lb, ub, error, max_f_calls, f_min):
-    f = count_calls(f)
-    simplexes = triangulate(lb, ub)
+    f = wrap(f, lb, ub)
+    simplexes = triangulate([0.]*len(lb), [1.]*len(ub))
+    # simplexes = [ # Disimpl_v Branin example
+    #     [[0., 1.], [0.25, 0.75], [0.5, 1.]],
+    #     [[0., 1.], [0.25, 0.75], [0., 0.5]],
+    #     [[0., 0.5], [0.25, 0.75], [0.5, 0.5]],
+    #     [[0.25, 0.75], [0.5, 1.], [0.5, 0.5]],
+    #     [[0.5, 1.], [0.5, 0.5], [0.75, 0.75]],
+    #     [[0.5, 1.], [0.75, 0.75], [1., 1.]],
+    #     [[0.75, 0.75], [1., 1.], [1., 0.5]],
+    #     [[0.5, 0.5], [0.75, 0.75], [1., 0.5]],
+    #     [[0., 0.], [0., 0.5], [0.25, 0.25]],
+    #     [[0., 0.5], [0.25, 0.25], [0.5, 0.5]],
+    #     [[0., 0.], [0.25, 0.25], [0.25, 0.]],
+    #     [[0.25, 0.25], [0.25, 0.], [0.5, 0.]],
+    #     [[0.5, 0.5], [0.25, 0.25], [0.5, 0.25]],
+    #     [[0.25, 0.25], [0.5, 0.25], [0.5, 0.]],
+    #     [[0.5, 0.5], [0.75, 0.25], [1., 0.5]],
+    #     [[0.5, 0.], [0.75, 0.25], [0.75, 0.]],
+    #     [[0.75, 0.], [0.75, 0.25], [1., 0.]],
+    #     [[0.5, 0.25], [0.5, 0.5], [0.75, 0.25]],
+    #     [[0.5, 0.], [0.5, 0.25], [0.75, 0.25]],
+    #     [[0.75, 0.25], [0.875, 0.25], [0.875, 0.125]],
+    #     [[0.75, 0.25], [0.875, 0.25], [0.875, 0.375]],
+    #     [[0.875, 0.25], [0.875, 0.375], [1., 0.25]],
+    #     [[0.875, 0.375], [1., 0.25], [1., 0.375]],
+    #     [[0.875, 0.375], [1., 0.375], [1., 0.5]],
+    #     [[0.875, 0.25], [1., 0.25], [0.875, 0.125]],
+    #     [[0.875, 0.125], [1., 0.125], [1., 0.25]],
+    #     [[0.875, 0.125], [1., 0.125], [1., 0.]],
+    # ]
     points = find_objective_values_for_vertexes(simplexes, f)
     simplexes = find_meta_for_simplexes(simplexes)
 
@@ -505,22 +715,34 @@ def disimpl_2v(f, lb, ub, error, max_f_calls, f_min):
     i = 0
     done = False
     while True: # i < max_iters:
-        simplexes_to_divide = select_simplexes_to_divide(simplexes)
+        if i == 0:
+            simplexes_to_divide = copy(simplexes)
+        else:
+            simplexes_to_divide = select_simplexes_to_divide(simplexes, i)
+        # show_potential(simplexes, simplexes_to_divide)
+
         # simplex_to_divide[-1]['hash'] = hash(str(simplex_to_divide[:-1]))
 
         # Chose division point
+        # print i, 'will divide', len(simplexes_to_divide)
+        # show_partitioning(simplexes)
+        # show_potential(simplexes, simplexes_to_divide)
+
         for simplex_to_divide in simplexes_to_divide:
             division_point = get_division_point(*(simplex_to_divide[:2] + [f]))
 
             # Update pareto front
-            update_pareto_front(pareto_front, division_point)
+            # update_pareto_front(pareto_front, division_point)
+
+            ### When dividing longest edge - divide and mirror simplexes
+            # Get simplexes, which have the same longes edge
 
             # Add new simplexes, remove divided one
             new_simplex1 = sort_vertexes_longest_edge_first([simplex_to_divide[0], division_point] + simplex_to_divide[2:-1])
             new_simplex2 = sort_vertexes_longest_edge_first([simplex_to_divide[1], division_point] + simplex_to_divide[2:-1])
             new_simplex1.append({
-                'avg_obj':  find_avg_obj(new_simplex1),
-                'divisions': simplex_to_divide[-1]['divisions']+1,
+                'value':  find_simplex_value(new_simplex1),
+                'size': find_simplex_size(new_simplex1),
                                  # 'mins_AB': find_mins_AB(new_simplex1, L),
                                  # 'approx_min_ABC': get_approx_lb_min(new_simplex1, L),
                                  # 'parent_hash': hash(str(simplex_to_divide[:-1])),
@@ -528,8 +750,8 @@ def disimpl_2v(f, lb, ub, error, max_f_calls, f_min):
                                  # 'tolerance': get_tolerance(new_simplex2, L),
                                  })
             new_simplex2.append({
-                'avg_obj':  find_avg_obj(new_simplex2),
-                'divisions': simplex_to_divide[-1]['divisions']+1,
+                'value':  find_simplex_value(new_simplex2),
+                'size': find_simplex_size(new_simplex2),
                                  # 'mins_AB': find_mins_AB(new_simplex2, L),
                                  # 'approx_min_ABC': get_approx_lb_min(new_simplex2, L),
                                  # 'parent_hash': hash(str(simplex_to_divide[:-1])),
@@ -543,49 +765,69 @@ def disimpl_2v(f, lb, ub, error, max_f_calls, f_min):
             simplexes.insert(index, new_simplex2)
 
             found_min = min([min([v[-1]['obj'][0] for v in s[:-1]]) for s in simplexes])
-            if should_stop(f_min, found_min, error):
-                done = True
-                break
+            # if should_stop(f_min, found_min, error):
+            #     done = True
+            #     break
 
-            if f.calls >= max_f_calls:
-                done = True
-                break
+        if should_stop(f_min, found_min, error):
+            done = True
+            break
+
+        if f.calls >= max_f_calls:
+            done = True
+            break
 
             # remove_dominated_simplexes(simplexes)
         i += 1
+        # print f.calls
         if done:
             break
         # print 'Number of simplexes', len(simplexes), 'Function calls:', f.calls
         # print i, tolerance
         # print '%d.  simplex approx.l.b.min.: %.14f' % (i, simplex_to_divide[-1]['approx_min_ABC'])
         # print '%d.  tolerance:  %.14f' % (i,  min([s[-1]['tolerance'] for s in simplexes]))
-    return pareto_front, simplexes, f.calls
+    return pareto_front, simplexes, f
 
 
 if __name__ == '__main__':
-    D = 2
-    max_f_calls = 500
+    # D = 2
+    from experiments import functions, get_D, get_lb, get_ub, get_min
+
+    max_f_calls = 10000
     error = 1.0
-    f_min = 0
+    print 'Pe', error
+    for f_name, f in functions[0:]:
+    # for f_name in ['easom']:
+        print f_name + ':'
+        f = dict(functions)[f_name]
+        D = get_D(f_name)
+        lb = get_lb(f_name, D)
+        ub = get_ub(f_name, D)
+        min_x = get_min(f_name, D)[:-1]
+        min_f = get_min(f_name, D)[-1]
 
-    f = shubert
-    # L = 10 # 5.**D
-    # lb = [-2.]*D
-    # ub = [2.]*D
-    lb = [-5.12]*D
-    ub = [5.12]*D
-    L = 100
+        # min_f = 0.397887
+        # min_x = [(-np.pi + 5)/ 15.,  12.275/15.]
 
-    actual_minimum = -186.7309
+        # f = branin
+        # lb = [-5., 0.]
+        # ub = [10., 15.]
 
-    # print f([-2, -2]); exit()
-    # draw_3d_objective_function(f, lb, ub); exit()
+        # draw_3d_objective_function(branin, lb, ub)
+        # exit()
 
-    pareto_front, simplexes, f_calls = disimpl_2v(f, lb, ub, error, max_f_calls, f_min)
-    print "Function calls:", f_calls
-    found_min = min([min([v[-1]['obj'][0] for v in s[:-1]]) for s in simplexes])
-    print "Minimum point", found_min, actual_minimum
+        start = datetime.now()
+        pareto_front, simplexes, f = disimpl_2v(f, lb, ub, error, max_f_calls, min_f)
+        end = datetime.now()
+        print '   ', f_name, f.calls, f.min_f, f.min_x
+        del f
+        del simplexes
+        # print "f*:", min_f, "x*:", min_x
+        # print "Calls:", f.calls, 'Found f*:', f.min_f, 'x*:', f.min_x[:-1]
+        # print "Duration", end-start
+        # raw_input('Press enter')
 
-    # show_lower_pareto_bound(simplexes)
-    show_partitioning(simplexes)
-    # show_pareto_front(pareto_front)
+        # show_lower_pareto_bound(simplexes)
+        # show_partitioning(simplexes)
+        # show_potential(simplexes)
+        # show_pareto_front(pareto_front)
