@@ -27,7 +27,10 @@ if __name__ == '__main__':
         mirror_division = bool(argv[2])
     elif len(argv) == 4:
         error = float(argv[1])
-        mirror_division = bool(argv[2])
+        if argv[2] == 'False':
+            mirror_division = False
+        else:
+            mirror_division = True
         algorithm = argv[3]
 
     comm = MPI.COMM_WORLD
@@ -50,7 +53,7 @@ if __name__ == '__main__':
     pareto_front, simplexes, f = algorithms[algorithm](f, lb, ub, error, max_f_calls, min_f, mirror_division)
     end = datetime.now()
 
-    output_path = '/home/albertas/global_opt/results/e%.2f_%s__%s__%d' % (error, algorithm, f_name, f.calls)
+    output_path = '/home/albertas/global_opt/results/e%.2f_%s__%s__%s__%d' % (error, algorithm, str(mirror_division), f_name, f.calls)
     output = open(output_path, 'w+')
     output.write('%s  %d  %f  %s\n' % (f_name, f.calls, f.min_f, str(f.min_x)))
     output.write('duration: %s\n' % (end-start,))
