@@ -8,7 +8,7 @@ from numpy import array as a, sqrt, hstack, vstack
 from utils import enorm, l2norm, city_block_norm, show_pareto_front, show_partitioning,\
                   draw_bounds, remove_dominated_subinterval, show_lower_pareto_bound,\
                   draw_simplex_3d_euclidean_bounds, draw_two_objectives_for_2d_simplex,\
-                  nm, draw_3d_objective_function, show_potential
+                  nm, draw_3d_objective_function, show_potential, wrap
 import numpy as np
 # from scipy.optimize import minimize
 from numpy.linalg import det, inv
@@ -638,31 +638,6 @@ def remove_dominated_simplexes(simplexes):
     # min_vertex_obj = min(simplexes, key=lambda x: x[-1]['approx_min_ABC'])
 
 
-def wrap(f, lb, ub):
-    '''Function decorator which adds call count attribute to the function.'''
-    def wrapper(*args, **kwargs):
-        point = args[0]   # Point in [0, 1]*n
-        if not point in wrapper.points:
-            wrapper.calls += 1   # Count unique function calls
-            wrapper.points.append(point[:])   # Save the point
-        new_point = []  # Transform point from [0, 1]*n to [l, u]
-        for i in range(len(wrapper.lb)):
-            v = wrapper.ub[i] - wrapper.lb[i]
-            new_point.append(point[i]*v + wrapper.lb[i])
-        value = f(*[new_point] + list(args[1:]), **kwargs)
-        if value < wrapper.min_f:   # Save best found value
-            wrapper.min_f = value
-            wrapper.min_x = point[:]
-        return value
-    wrapper.calls = 0
-    wrapper.min_f = float('inf')
-    wrapper.min_x = None
-    wrapper.lb = lb
-    wrapper.ub = ub
-    wrapper.points = []
-    wrapper.__name__= f.__name__
-    return wrapper
-
 def get_simplexes_with_given_longest_edge(simplexes, A, B):
     with_the_edge = []
     for s in simplexes:
@@ -677,7 +652,6 @@ def should_stop(actual_f_min, found_min, error):
     return (found_min - actual_f_min)/abs(actual_f_min)*100 < error
 
 def disimpl_v(f, lb, ub, error, max_f_calls, f_min, mirror_division=False):
-    f = wrap(f, lb, ub)
     simplexes = triangulate([0.]*len(lb), [1.]*len(ub))
     # simplexes = [ # Disimpl_v Branin example
     #     [[0., 1.], [0.25, 0.75], [0.5, 1.]],
@@ -780,7 +754,7 @@ def disimpl_v(f, lb, ub, error, max_f_calls, f_min, mirror_division=False):
 
             # remove_dominated_simplexes(simplexes)
         i += 1
-        # print f.calls
+        print f.calls
         if done:
             break
         # print 'Number of simplexes', len(simplexes), 'Function calls:', f.calls
@@ -791,43 +765,33 @@ def disimpl_v(f, lb, ub, error, max_f_calls, f_min, mirror_division=False):
 
 
 if __name__ == '__main__':
-    # D = 2
-    from experiments import functions, get_D, get_lb, get_ub, get_min
+    from experiments import functions, get_D, get_lb, get_ub, get_min, gkls_function
 
     max_f_calls = 10000
     error = 1.0
-    print 'Pe', error
-    for f_name, f in functions[0:]:
-    # for f_name in ['easom']:
-        print f_name + ':'
-        f = dict(functions)[f_name]
-        D = get_D(f_name)
-        lb = get_lb(f_name, D)
-        ub = get_ub(f_name, D)
-        min_x = get_min(f_name, D)[:-1]
-        min_f = get_min(f_name, D)[-1]
 
-        # min_f = 0.397887
-        # min_x = [(-np.pi + 5)/ 15.,  12.275/15.]
+    gkls_cls = 2
+    gkls_fid = 1
 
-        # f = branin
-        # lb = [-5., 0.]
-        # ub = [10., 15.]
-
-        # draw_3d_objective_function(branin, lb, ub)
-        # exit()
-
-        start = datetime.now()
-        pareto_front, simplexes, f = disimpl_v(f, lb, ub, error, max_f_calls, min_f)
-        end = datetime.now()
-        print '   ', f_name, f.calls, f.min_f, f.min_x
-        del f
-        del simplexes
-        # print "f*:", min_f, "x*:", min_x
-        # print "Calls:", f.calls, 'Found f*:', f.min_f, 'x*:', f.min_x[:-1]
-        # print "Duration", end-start
-        # raw_input('Press enter')
-
+    for gkls_cls in range(1, 9):
+        for gkls_fid in range(1, 101):
+            f_name = 'gkls_cls%d_%d' % (gkls_cls, gkls_fid)
+            D = get_D(f_name)
+            lb = get_lb(f_name, D)
+            ub = get_ub(f_name, D)
+            f = wrap(gkls_function, lb, ub, gkls_cls=gkls_cls, gkls_fid=gkls_fid)   # f = wrap(dict(functions)[f_name], lb, ub)
+            print f_name + ':'
+            min_x = get_min(f_name, D)[:-1]
+            min_f = get_min(f_name, D)[-1]
+            # draw_3d_objective_function(branin, lb, ub)
+            start = datetime.now()
+            pareto_front, simplexes, f = disimpl_v(f, lb, ub, error, max_f_calls, min_f)
+            end = datetime.now()
+            print '   ', f.calls, f.min_f, f.min_x, f_name
+            print "Calls:", f.calls, 'Found min f:', f.min_f, 'at x:', f.min_x[:-1]
+            print "f*:", min_f, "x*:", min_x
+            print "Duration", end-start
+            exit()
         # show_lower_pareto_bound(simplexes)
         # show_partitioning(simplexes)
         # show_potential(simplexes)

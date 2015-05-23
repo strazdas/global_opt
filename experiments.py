@@ -185,14 +185,7 @@ def centered_jennrich_sampson(X):
         sum1 += (2 + 2*i - (np.e**(i*x1) + np.e**(i*x2)))**2
     return sum1
 
-def gkls_function(
-        X,
-        function_id=1,
-        dimension=2,
-        global_dist=0.9,
-        global_radius=0.2,
-        num_minima=10,
-    ):
+def gkls_function(X, function_id=1, dimension=2, global_dist=0.9, global_radius=0.2, num_minima=10):
     executable = './fgen/GKLS_C/gkls_eval'
     command_parts = [executable, dimension, global_dist, global_radius, num_minima, function_id] + list(X)
     command = ' '.join([str(p) for p in command_parts])
@@ -260,6 +253,15 @@ functions = [
 ]
 
 def get_D(f_name):
+    if f_name.startswith('gkls'):
+        gkls_dimensions = {
+            'cls1': 2, 'cls2': 2,
+            'cls3': 3, 'cls4': 3,
+            'cls5': 4, 'cls6': 4,
+            'cls7': 5, 'cls8': 5
+        }
+        return gkls_dimensions[f_name.split('_')[1]]
+
     Ds = {
         'hartman3': 3,
         'shekel5': 4,
@@ -275,6 +277,8 @@ def get_D(f_name):
     return Ds[f_name]
 
 def get_lb(f_name, D=2):
+    if f_name.startswith('gkls'):
+        return [-1.]*D
     lbs = {
         'hyperparabola': [-2.]*D,
         'rosenbrock': [-1.]*D,
@@ -300,6 +304,8 @@ def get_lb(f_name, D=2):
     return lbs[f_name][:D]
 
 def get_ub(f_name, D=2):
+    if f_name.startswith('gkls'):
+        return [1.]*D
     ups = {
         'hyperparabola': [2.]*D,
         'rosenbrock': [1.]*D,
@@ -325,14 +331,32 @@ def get_ub(f_name, D=2):
     return ups[f_name][:D]
 
 def get_min(f_name, D=2):
+    '''Returns minimum in original (not reduces to [0,1]) space, except for
+    GKLS functions minimum x is reduced from [-1,1]**2 to [0,1]**2 space.
+    '''
+    if f_name.startswith('gkls'):
+        executable = './fgen/GKLS_C/gkls_get_glob_min'
+        cls = int(f_name.split('_')[1][-1])
+        function_id = int(f_name.split('_')[2])
+        dimensions = [2, 2, 3, 3, 4, 4, 5, 5]
+        global_dists = [0.9, 0.9, 0.66, 0.9, 0.66, 0.9, 0.66, 0.66]
+        global_radiuses = [0.2, 0.1, 0.2, 0.2, 0.2, 0.2, 0.3, 0.2]
+        command_parts = [executable, dimensions[cls-1], global_dists[cls-1], global_radiuses[cls-1], 10, function_id]
+        command = ' '.join([str(p) for p in command_parts])
+        glob_min_str = os.popen(command).read()
+        min_x = [float(o) for o in glob_min_str.split()]
+        lb = [-1]*dimensions[cls-1]
+        ub = [1]*dimensions[cls-1]
+        reduce_min = [(min_x[i] -lb[i])/(ub[i]-lb[i]) for i in range(len(lb))]
+        return reduce_min + [-1.]
     minimums = {
-        'rastrigin': [[0]*(D+1)],
-        'hyperparabola': [[1]*D + [0]],
-        'rosenbrock': [[1]*D + [0]],
+        'rastrigin': [0]*(D+1),
+        'hyperparabola': [1]*D + [0],
+        'rosenbrock': [1]*D + [0],
         'branin': [-np.pi, 12.275, 0.397887],
         'goldstein_price': [0., -1., 3.],
         'six_hump_camel_back': [0.0898, -0.7126, -1.0316],
-        'shubert': [4.85805,5.4828, -186.7309],
+        'shubert': [4.85805, 5.4828, -186.7309],
         'alolyan': [-1/3., 1., -1.18519],
         'easom': [np.pi, np.pi, -1.000],
         'rastrigin': [0, 0, 0],

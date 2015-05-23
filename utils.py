@@ -36,6 +36,57 @@ def city_block_norm(X):
         return X
     return sum([e for e in X])
 
+def wrap(f, lb, ub, gkls_cls=None, gkls_fid=None):
+    '''Function decorator which adds call count attribute to the function.'''
+
+    def wrapper(*args, **kwargs):
+        point = args[0]   # Point in [0, 1]*n
+
+        if not point in wrapper.points:
+            wrapper.calls += 1   # Count unique function calls
+            wrapper.points.append(point[:])   # Save the point
+
+        new_point = []    # Transform point from [0, 1]*n to [l, u]
+        for i in range(len(wrapper.lb)):
+            v = wrapper.ub[i] - wrapper.lb[i]
+            new_point.append(point[i]*v + wrapper.lb[i])
+
+        if wrapper.gkls_cls:  # If GKLS function add call parameters
+            kwargs.update({
+                'function_id': wrapper.function_id,
+                'dimension': wrapper.dimension,
+                'global_dist': wrapper.global_dist,
+                'global_radius': wrapper.global_radius,
+                'num_minima': wrapper.num_minima,
+            })
+
+        value = f(*[new_point] + list(args[1:]), **kwargs)
+
+        if value < wrapper.min_f:   # Save best found value
+            wrapper.min_f = value
+            wrapper.min_x = point[:]
+        return value
+
+    wrapper.calls = 0
+    wrapper.min_f = float('inf')
+    wrapper.min_x = None
+    wrapper.lb = lb
+    wrapper.ub = ub
+    wrapper.points = []
+    wrapper.__name__ = f.__name__
+    if gkls_cls and gkls_fid:
+        dimensions = [2, 2, 3, 3, 4, 4, 5, 5]
+        global_dists = [0.9, 0.9, 0.66, 0.9, 0.66, 0.9, 0.66, 0.66]
+        global_radiuses = [0.2, 0.1, 0.2, 0.2, 0.2, 0.2, 0.3, 0.2]
+        wrapper.gkls_cls = gkls_cls
+        wrapper.function_id = gkls_fid
+        wrapper.dimension = dimensions[gkls_cls - 1]
+        wrapper.global_dist = global_dists[gkls_cls - 1]
+        wrapper.global_radius = global_radiuses[gkls_cls - 1]
+        wrapper.num_minima = 10
+    return wrapper
+
+
 
 # def lower_bound(p, t, y, norm='Euclidean', v_num=2, L=[1, 1]):
 #     '''p - point at which the lower L bound is searched.
