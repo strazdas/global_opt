@@ -4,12 +4,12 @@ import numpy as np
 from numpy import sqrt
 from numpy import array as a, matrix as m
 from numpy import array as a, matrix as m, arange, sqrt, isnan, pi, cos, sin, mean
-from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 from random import random, seed
 from numpy.linalg import det
 
-import matplotlib.ticker as plticker
-from matplotlib import cm
+# import matplotlib.ticker as plticker
+# from matplotlib import cm
 from itertools import permutations
 
 

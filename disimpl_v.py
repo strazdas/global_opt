@@ -12,7 +12,7 @@ from utils import enorm, l2norm, city_block_norm, show_pareto_front, show_partit
 import numpy as np
 # from scipy.optimize import minimize
 from numpy.linalg import det, inv
-from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 from datetime import datetime
 import warnings
 warnings.filterwarnings("error")

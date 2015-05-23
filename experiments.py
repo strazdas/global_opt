@@ -4,10 +4,11 @@ from numpy import sin, cos, e, pi
 
 # from nu_angled import nu_angled_algorithm
 from disimpl_2v import disimpl_2v
-from utils import draw_3d_objective_function, show_partitioning
+# from utils import draw_3d_objective_function, show_partitioning
 from datetime import datetime
 # from scipy.optimize import minimize
 from sys import argv
+import os
 
 
 ############   Objective functions   ############
@@ -184,6 +185,19 @@ def centered_jennrich_sampson(X):
         sum1 += (2 + 2*i - (np.e**(i*x1) + np.e**(i*x2)))**2
     return sum1
 
+def gkls_function(
+        X,
+        function_id=1,
+        dimension=2,
+        global_dist=0.9,
+        global_radius=0.2,
+        num_minima=10,
+    ):
+    executable = './fgen/GKLS_C/gkls_eval'
+    command_parts = [executable, dimension, global_dist, global_radius, num_minima, function_id] + list(X)
+    command = ' '.join([str(p) for p in command_parts])
+    return float(os.popen(command).read())
+
 ##########  Gradients  ##########
 def get_grad(f_name):
     grads = {
@@ -338,7 +352,7 @@ def get_min(f_name, D=2):
 def get_L(f_name, C=1):
     '''Lipschitz constant:   L = max_{x in D} ||grad(f)(x)||'''
     Ls = {
-        14.1421356237
+#        14.1421356237
 #         'hyperparabola': [4]*C,  # L = 2*ub[0]
 #         'rosenbrock': [500]*C,     # L = 100*x2 - 600*x1^2*x2 + 500*x1^4 + 2*x1 + 2
 #         'styblinski': [1]*C,     # L = 3*x - 32*x + 5
@@ -373,7 +387,6 @@ if __name__ == '__main__':
     elif len(argv) == 3:
         error = float(argv[1])
         mirror_division = bool(argv[2])
-
 
     for f_name, f in functions:
         f = dict(functions)[f_name]
