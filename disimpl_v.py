@@ -768,10 +768,7 @@ if __name__ == '__main__':
     from experiments import functions, get_D, get_lb, get_ub, get_min, gkls_function
 
     max_f_calls = 10000
-    error = 1.0
-
-    gkls_cls = 2
-    gkls_fid = 1
+    error = 0.01
 
     for gkls_cls in range(1, 9):
         for gkls_fid in range(1, 101):
@@ -785,13 +782,12 @@ if __name__ == '__main__':
             min_f = get_min(f_name, D)[-1]
             # draw_3d_objective_function(branin, lb, ub)
             start = datetime.now()
-            pareto_front, simplexes, f = disimpl_v(f, lb, ub, error, max_f_calls, min_f)
+            pareto_front, simplexes, f = disimpl_v(f, lb, ub, error, max_f_calls, min_f, mirror_division=True)
             end = datetime.now()
-            print '   ', f.calls, f.min_f, f.min_x, f_name
-            print "Calls:", f.calls, 'Found min f:', f.min_f, 'at x:', f.min_x[:-1]
-            print "f*:", min_f, "x*:", min_x
-            print "Duration", end-start
-            exit()
+            print 'Cls%d fid%d calls %d   ' % (gkls_cls, gkls_fid, f.calls)   #, f.min_f, f.min_x, f_name
+            # print "Calls:", f.calls, 'Found min f:', f.min_f, 'at x:', f.min_x[:-1]
+            # print "f*:", min_f, "x*:", min_x
+            # print "Duration", end-start
         # show_lower_pareto_bound(simplexes)
         # show_partitioning(simplexes)
         # show_potential(simplexes)
