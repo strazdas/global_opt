@@ -1,3 +1,4 @@
+#! /urs/bin/python
 #! coding: utf-8
 '''
 nD -> 1D problem partitioning by dividing longest simplex edge into two equal parts.
@@ -564,24 +565,17 @@ def select_simplexes_to_divide(simplexes, it=0, mirror_division=False):
                                          and s not in selected):
                 selected.append(s)
 
-    ## ??? Divide the mirror simplex ???.
     if mirror_division:
         for s in selected:
             simplexes_with_same_longest_edge = get_simplexes_with_given_longest_edge(simplexes, s[0], s[1])
-            for s in simplexes_with_same_longest_edge:
-                if s not in selected:
-                    selected.append(s)
+            for swle in simplexes_with_same_longest_edge:
+                if swle not in selected and s[-1]['size'] == swle[-1]['size']:
+                    selected.append(swle)
 
     # from pprint  import pprint
     # print 'Simplexes'
     # pprint(simplexes)
     # print 'Worst simplex', max(simplexes, key=lambda x: x[-1]['value'])
-    # print 'Worst neibours'
-    # pprint([s for s in simplexes if [0.75, 0.75] in [v[:-1] for v in s[:-1]]])
-    # # print 'Best simplexes'
-    # # pprint([s for s in simplexes if [1., 0.25] in [v[:-1] for v in s[:-1]]])
-    # # print '-----'
-    # # pprint([s for s in simplexes if [1., 0.125] in [v[:-1] for v in s[:-1]]])
     # print 'Simplex best value', f
     # print 'Simplex diameter', d
     # show_potential(simplexes, selected)
@@ -769,6 +763,7 @@ if __name__ == '__main__':
 
     max_f_calls = 10000
     error = 0.01
+    mirror_division = False
 
     for gkls_cls in range(1, 9):
         for gkls_fid in range(1, 101):
@@ -776,15 +771,16 @@ if __name__ == '__main__':
             D = get_D(f_name)
             lb = get_lb(f_name, D)
             ub = get_ub(f_name, D)
-            f = wrap(gkls_function, lb, ub, gkls_cls=gkls_cls, gkls_fid=gkls_fid)   # f = wrap(dict(functions)[f_name], lb, ub)
+            f = wrap(gkls_function, lb, ub, gkls_cls=gkls_cls, gkls_fid=gkls_fid)
+            # f = wrap(dict(functions)[f_name], lb, ub)
             print f_name + ':'
             min_x = get_min(f_name, D)[:-1]
             min_f = get_min(f_name, D)[-1]
             # draw_3d_objective_function(branin, lb, ub)
             start = datetime.now()
-            pareto_front, simplexes, f = disimpl_v(f, lb, ub, error, max_f_calls, min_f, mirror_division=True)
+            pareto_front, simplexes, f = disimpl_v(f, lb, ub, error, max_f_calls, min_f, mirror_division)
             end = datetime.now()
-            print 'Cls%d fid%d calls %d   ' % (gkls_cls, gkls_fid, f.calls)   #, f.min_f, f.min_x, f_name
+            print '%s   calls %d' % (f_name, f.calls)
             # print "Calls:", f.calls, 'Found min f:', f.min_f, 'at x:', f.min_x[:-1]
             # print "f*:", min_f, "x*:", min_x
             # print "Duration", end-start

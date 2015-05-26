@@ -84,6 +84,9 @@ def wrap(f, lb, ub, gkls_cls=None, gkls_fid=None):
         wrapper.global_dist = global_dists[gkls_cls - 1]
         wrapper.global_radius = global_radiuses[gkls_cls - 1]
         wrapper.num_minima = 10
+    else:
+        wrapper.gkls_cls = None
+        wrapper.function_id = None
     return wrapper
 
 
@@ -269,6 +272,24 @@ def draw_3d_objective_function(f, lb=[-0.1, 2.1], ub=[-0.1, 2.1], title=''):
     # ax.set_zlim(lb[2], ub[2])
     ax.set_title(title)
     plt.show()
+
+
+# def draw_grazina_surface():
+#     from mpl_toolkits.mplot3d import Axes3D
+#     from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+# 
+#     fig = plt.figure()
+#     ax = Axes3D(fig)
+#     # ax = fig.gca(projection='3d')
+# 
+#     # points = [[0,0,7], [9,0,7], [7,2,7], [0,2,7], [0,9,0]]
+#     x = [0.0,0.9,0.7,0.0]
+#     y = [0.0,0.0,0.2,0.2]
+#     z = [0.7,0.7,0.7,0.7]
+#     verts = [zip(x,y,z)]
+#     ax.add_collection3d(Poly3DCollection(verts))
+# 
+#     plt.show()
 
 
 #########  Simplex lower bound visualisation utilities  #########
@@ -643,3 +664,6 @@ def draw_two_objectives_for_2d_simplex(simplex, add_points=[]):
 
     plt.legend(loc=4)
     plt.show()
+
+if __name__ == '__main__':
+    draw_grazina_surface()
