@@ -141,7 +141,8 @@ def find_simplex_value(simplex):
     ## Three:
     # return np.mean([v[-1]['obj'] for v in simplex[:-1]])
     ## Two:
-    return np.mean([v[-1]['obj'] for v in simplex[:2]])
+    return np.mean(sorted([v[-1]['obj'][0] for v in nm(simplex)])[:2]) # Lowest edge lower bound
+    # return np.mean([v[-1]['obj'] for v in simplex[:2]]) # Longest edge lower bound
     ## One vertex:
     # return min([v[-1]['obj'][0] for v in simplex])
 
