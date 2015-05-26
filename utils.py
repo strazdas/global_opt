@@ -4,12 +4,10 @@ import numpy as np
 from numpy import sqrt
 from numpy import array as a, matrix as m
 from numpy import array as a, matrix as m, arange, sqrt, isnan, pi, cos, sin, mean
-# from matplotlib import pyplot as plt
+
 from random import random, seed
 from numpy.linalg import det
 
-# import matplotlib.ticker as plticker
-# from matplotlib import cm
 from itertools import permutations
 
 
@@ -118,6 +116,7 @@ def wrap(f, lb, ub, gkls_cls=None, gkls_fid=None):
 
 #########  Algorithm result visualization utilities  #########
 def show_potential(simplexes, selected=[], show=True):
+    from matplotlib import pyplot as plt
     # Draw two plots
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,6))
 
@@ -168,6 +167,7 @@ def show_potential(simplexes, selected=[], show=True):
 
 
 def show_pareto_front(pareto_front):
+    from matplotlib import pyplot as plt
     '''Draws 2D pareto set and 2D pareto front.'''
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12,6))
     obj1 = [p[-1]['obj'][0] for p in pareto_front]
@@ -178,6 +178,7 @@ def show_pareto_front(pareto_front):
 
 
 def show_partitioning(simplexes, simplex_to_divide=None, division_point=None):
+    from matplotlib import pyplot as plt
     # nr_of_colors = plt.cm.jet.N / len(simplexes)
     # clrs = plt.cm.jet([e*nr_of_colors for e in range(len(simplexes))])
     for i, simplex in enumerate(simplexes):
@@ -198,6 +199,7 @@ def show_partitioning(simplexes, simplex_to_divide=None, division_point=None):
 
 
 def show_lower_pareto_bound(simplexes):
+    from matplotlib import pyplot as plt
     '''For 2D -> 2D problem show the lower pareto bound.'''
     # Warning:  unfinished, untested.
     def lower_bound_for_interval(t, y, dist=None, L=[1.,1.], verts=[0,1]):
@@ -234,6 +236,7 @@ def show_lower_pareto_bound(simplexes):
 
 def show_simplex_minimum_dissmatch(simplexes):
     '''Shows approximated minimum dismatch with analytically found solution.'''
+    from matplotlib import pyplot as plt
     min_dissmatches = []
     for simplex in simplexes:
         approx_mins_ABC = simplex[-1]['approx_mins_ABC']
@@ -253,6 +256,9 @@ def show_simplex_minimum_dissmatch(simplexes):
     plt.show()
 
 def draw_3d_objective_function(f, lb=[-0.1, 2.1], ub=[-0.1, 2.1], title=''):
+    from matplotlib import pyplot as plt
+    from matplotlib import cm
+
     X1 =  np.arange(lb[0], ub[0], (ub[0]-lb[0])/150.)
     X2 =  np.arange(lb[1], ub[1], (ub[1]-lb[1])/150.)
     X1, X2 = np.meshgrid(X1, X2)
@@ -484,6 +490,8 @@ def draw_objective_bounds(x1, x2, ax, L=[1.,1.]):
 
 def draw_bounds(x1, x2, L=[1.,1.]):
     '''Draws 3 plots describing bounds for 1D->2D problems'''
+    from matplotlib import pyplot as plt
+    import matplotlib.ticker as plticker
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18,6))
 
     ## Normalize x1, x2 for 2D variable space
@@ -532,6 +540,9 @@ def lower_bound_surface(X1, X2, t, y, L):
 def draw_simplex_3d_euclidean_bounds(simplex, obj_nr=0, L=[1., 1.], points=[]):
     '''2d->2d simplex lower bound surface.
     Draws a single objective below 2D simplex'''
+    from matplotlib import pyplot as plt
+    from matplotlib import cm
+
     t = a([simplex[0][:-1], simplex[1][:-1], simplex[2][:-1]])
     y = a([simplex[0][-1]['obj'], simplex[1][-1]['obj'], simplex[2][-1]['obj']])   # (obj1, obj2) for A, B, C
 
@@ -593,6 +604,7 @@ def draw_two_objectives_for_2d_simplex(simplex, add_points=[]):
     '''2d->2d simplex objective values.
     points - additional points to be displayed in the drawing.
     Draws two objectives of two variable space'''
+    from matplotlib import pyplot as plt
 
     def gen_points(triangle, n=10000):
         seed(123)
