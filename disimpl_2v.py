@@ -564,13 +564,12 @@ def select_simplexes_to_divide(simplexes, it=0, mirror_division=False):
                                          and s not in selected):
                 selected.append(s)
 
-    ## ??? Divide the mirror simplex ???.
-    if mirror_division:
+    if mirror_division:      # Somehow does not have any effect, needs more inspection
         for s in selected:
             simplexes_with_same_longest_edge = get_simplexes_with_given_longest_edge(simplexes, s[0], s[1])
-            for s in simplexes_with_same_longest_edge:
-                if s not in selected:
-                    selected.append(s)
+            for swle in simplexes_with_same_longest_edge:
+                if swle not in selected and s[-1]['size'] == swle[-1]['size']:
+                    selected.append(swle)
 
     # from pprint  import pprint
     # print 'Simplexes'
@@ -754,7 +753,7 @@ def disimpl_2v(f, lb, ub, error, max_f_calls, f_min, mirror_division=False):
 
             # remove_dominated_simplexes(simplexes)
         i += 1
-        # print f.calls
+        print f.calls
         if done:
             break
         # print 'Number of simplexes', len(simplexes), 'Function calls:', f.calls
@@ -768,10 +767,8 @@ if __name__ == '__main__':
     from experiments import functions, get_D, get_lb, get_ub, get_min, gkls_function
 
     max_f_calls = 10000
-    error = 1.0
-
-    gkls_cls = 2
-    gkls_fid = 1
+    error = 0.01
+    mirror_division = False
 
     for gkls_cls in range(1, 9):
         for gkls_fid in range(1, 101):
@@ -785,7 +782,7 @@ if __name__ == '__main__':
             min_f = get_min(f_name, D)[-1]
             # draw_3d_objective_function(branin, lb, ub)
             start = datetime.now()
-            pareto_front, simplexes, f = disimpl_2v(f, lb, ub, error, max_f_calls, min_f)
+            pareto_front, simplexes, f = disimpl_2v(f, lb, ub, error, max_f_calls, min_f, mirror_division)
             end = datetime.now()
             print '   ', f.calls, f.min_f, f.min_x, f_name
             print "Calls:", f.calls, 'Found min f:', f.min_f, 'at x:', f.min_x[:-1]
