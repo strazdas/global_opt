@@ -4,9 +4,9 @@ from numpy import sin, cos, e, pi
 
 # from nu_angled import nu_angled_algorithm
 from disimpl_2v import disimpl_2v
-# from utils import draw_3d_objective_function, show_partitioning
+from utils import draw_3d_objective_function, show_partitioning
 from datetime import datetime
-# from scipy.optimize import minimize
+from utils import enorm
 from sys import argv
 import os
 
@@ -75,7 +75,7 @@ def alolyan(X):
 def easom(X):
     '''http://link.springer.com/article/10.1007%2Fs10898-012-0020-3'''
     x1, x2 = X
-    return -np.cos(x1) * np.cos(x2) * np.e**(-((x1-np.pi)**2 + (x2 -np.pi)**2))
+    return -cos(x1) * cos(x2) * np.e**(-((x1-pi)**2 + (x2 -pi)**2))
 
 def rastrigin(X, A=10):
     '''http://link.springer.com/article/10.1007%2Fs10898-012-0020-3'''
@@ -194,6 +194,12 @@ def gkls_function(X, function_id=1, dimension=2, global_dist=0.9, global_radius=
 ##########  Gradients  ##########
 def get_grad(f_name):
     grads = {
+        'branin': branin_grad,
+        'goldstein_price': goldstein_price_grad,
+        'six_hump_camel_back': six_hump_camel_back_grad,
+        'shubert': shubert_grad,
+        'alolyan': alolyan_grad,
+        'easom': easom,
         'rastrigin': rastrigin_grad,
     }
     return grads[f_name]
@@ -204,7 +210,54 @@ def rastrigin_grad(X, A=10):
     g2 = 2*pi*A * sin(2*pi*x2) + 2*x2
     return g1, g2
 
+def branin_grad(X):
+    x1, x2 = X
+    g1 = 2*(5/pi - 2.55*x1/pi**2)*(x2 - 1.275*x1**2/pi**2 + 5*x1/pi -6) - 10*(1-1/8*pi)*sin(x1)
+    g2 = 2*(x2 - 1.275*x1**2/pi**2 + 5*x1/pi - 6)
+    return g1, g2
+
+def goldstein_price_grad(X):
+    x, y = X
+    g1 = (((y+x+1)**2 * (3*y**2 + 6*x*y - 14*y + 3*x**2 - 14*x + 19) + 1) *
+          (4*(2*x - 3*y) * (27*y**2 - 36*x*y + 48*y + 12*x**2 - 32*x + 18) +
+          (-36*y + 24*x - 32)*(2*x - 3*y)**2) + (2*(y+x+1)*(3*y**2 + 6*x*y - 14*y+3*x**2 - 14*x + 19)+
+          (y + x + 1)**2 * (6*y+6*x-14)) * ((2*x - 3*y)**2 * (27*y**2-36*x*y + 48*y + 12*x**2 - 32*x + 18) + 30))
+    g2 = (((y + x + 1)**2 * (3*y**2 + 6*x*y - 14*y+ 3*x**2 - 14*x + 19) + 1) *
+          ((2*x - 3*y)**2 * (54*y - 36*x + 48) - 6*(2*x - 3*y)* (27*y**2 - 
+          36*x*y+48*y + 12*x**2-32*x+18)) + (2*(y+x+1)*(3*y**2+6*x*y-14*y+3*x**2 -
+          14*x + 19)+(y+x+1)**2*(6*y+6*x-14))*((2*x - 3*y)**2 * (27*y**2
+          -36*x*y + 48*y +12*x**2 - 32*x + 18)+30))
+    return g1, g2
+
+def six_hump_camel_back_grad(X):
+    x, y = X
+    g1 = (5*y + 10*x**5 + 38*x**3)/5.
+    g2 = y
+    return g1, g2
+
+def shubert_grad(X):
+    x, y = X
+    g1 = (-30*sin(6*x+5)-20*sin(5*x+4) - 12*sin(4*x+3) - 6*sin(3*x + 2) - 2*sin(2*x + 1))*(5*cos(6*y+5)+ 4*cos(5*y + 4) + 3*cos(4*y + 3)+2*cos(3*y + 2)+cos(2*y+1))
+    g2 = (5*cos(6*x + 5)+ 4*cos(5*x+4)+3*cos(4*x+3) + 2*cos(3*x + 2) + cos(2*x+1))*(-30*sin(6*y+5) - 20*sin(5*y+4) - 12*sin(4*y+3) - 6*sin(3*y+2) - 2*sin(2*y+1))
+    return g1, g2
+
+def alolyan_grad(X):
+    x, y = X
+    g1 = y**2 + 2*x*y - 3*x**2
+    g2 = x**2 + 2*x*y - 3*y**2
+    return g1, g2
+
+def easom_grad(X):
+    x, y = X
+    g1 = sin(x)*np.e**(-(y-pi)**2 - (x-pi)**2) * cos(y) + 2*(x-pi) * cos(x)*np.e**(-(y-pi)**2 - (x-pi)**2)*cos(y)
+    g2 = cos(x)*np.e**(-(y-pi)**2 - (x-pi)**2) * sin(y) + 2*cos(x) * (y-pi)*np.e**(-(y-pi)**2 - (x-pi)**2)*cos(y)
+    return g1, g2
+
+
 def find_L(f_name):
+    from scipy.optimize import minimize
+    from scipy.optimize import brute, basinhopping
+
     D = get_D(f_name)
     grad = get_grad(f_name)
     lb = get_lb(f_name)
@@ -215,15 +268,17 @@ def find_L(f_name):
             if lb[i] > X[i] or ub[i] < X[i]:
                 return float('inf')
         return -enorm(grad(X))
-    Ls = []
-    # Naudoti globalaus, o ne lokalaus optimizavimo algoritma
-    Ls.append(minimize(negative_grad_norm, lb, options={'disp': False},
-                       args=(grad, lb, ub)).fun)
-    Ls.append(minimize(negative_grad_norm, (a(lb)+a(ub))/2., options={'disp': False},
-                       args=(grad, lb, ub)).fun)
-    Ls.append(minimize(negative_grad_norm, ub, options={'disp': False},
-                       args=(grad, lb, ub)).fun)
-    return -min(Ls)
+    x0 = brute(negative_grad_norm, (lb, ub), Ns=4000, args=(grad, lb, ub), disp=False)
+    return -negative_grad_norm(x0, grad, lb, ub)
+    ## Ls = []
+    ## Local minimization does not find gradient minimum
+    # Ls.append(minimize(negative_grad_norm, lb, options={'disp': False},
+    #                    args=(grad, lb, ub)).fun)
+    # Ls.append(minimize(negative_grad_norm, (a(lb)+a(ub))/2., options={'disp': False},
+    #                    args=(grad, lb, ub)).fun)
+    # Ls.append(minimize(negative_grad_norm, ub, options={'disp': False},
+    #                    args=(grad, lb, ub)).fun)
+    # return -min(Ls)
 
 
 ########  Function parameters  ##########
@@ -376,8 +431,14 @@ def get_min(f_name, D=2):
 def get_L(f_name, C=1):
     '''Lipschitz constant:   L = max_{x in D} ||grad(f)(x)||'''
     Ls = {
-#        14.1421356237
-#         'hyperparabola': [4]*C,  # L = 2*ub[0]
+            'rastrigin': 15.6204993518,
+            'branin': 109.94813585,
+            'goldstein_price': 2225891.74508,
+            'six_hump_camel_back': 689.202901909,
+            'shubert': 59.4020075361,
+            'alolyan': 5.65685424949,
+            'easom': 5.01891948878e-05,  # Inaccurate
+#            'hyperparabola': [4]*C,  # L = 2*ub[0]
 #         'rosenbrock': [500]*C,     # L = 100*x2 - 600*x1^2*x2 + 500*x1^4 + 2*x1 + 2
 #         'styblinski': [1]*C,     # L = 3*x - 32*x + 5
 #         'shubert': [1]*C,     # L = ??
