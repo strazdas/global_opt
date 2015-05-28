@@ -149,7 +149,7 @@ def show_potential(simplexes, selected=[], show=True):
         division_point = [(s[le_i][0]+s[le_j][0])/2., (s[le_i][1]+s[le_j][1])/2.]
         # ax1.plot([division_point[0], simplex[2][0]], [division_point[1], simplex[2][0]], 'r-')
         ax1.plot([division_point[0]], [division_point[1]], 'ro')
-        ax1.plot([division_point[0], s[2][0]], [division_point[1], s[2][1]], 'r-')
+        ax1.plot([division_point[0], s[2][0]], [division_point[1], s[2][1]], 'r--')
         # Get longest edge, divide it
         # division line needed
 
